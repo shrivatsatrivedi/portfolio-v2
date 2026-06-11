@@ -3,7 +3,16 @@
     "allow": [
       "Bash(node -e \"console.log\\('animejs:', require\\('animejs/package.json'\\).version\\)\")",
       "Bash(node -e \"console.log\\('next:', require\\('next/package.json'\\).version\\)\")",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "mcp__08faa617-ebb3-4f0d-b3c6-12a86bdade64__deploy_to_vercel",
+      "Bash(vercel --version)",
+      "Bash(vercel whoami *)",
+      "Bash(npm i *)",
+      "Bash(/Users/shrivatsa/.hermes/node/bin/vercel whoami *)",
+      "Bash(/Users/shrivatsa/.hermes/node/bin/vercel deploy *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

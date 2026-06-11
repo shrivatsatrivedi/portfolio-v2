@@ -1,7 +1,7 @@
 # About Me
 Name: Shrivatsa Atman Trivedi
 Email: shrivatsatrivedi@gmail.com | Phone: 7045103001
-GitHub: github.com/shrivatsa
+GitHub: github.com/shrivatsatrivedi
 LinkedIn: linkedin.com/in/shrivatsa
 
 # This Project

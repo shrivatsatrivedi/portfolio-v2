@@ -5,7 +5,7 @@ import { animate, stagger } from "animejs";
 import { onceVisible } from "@/lib/animations";
 
 const STATS = [
-  { value: "1", label: "Internship @ InMobi Group" },
+  { value: "2", label: "Internships · InMobi & Accenture" },
   { value: "🏆", label: "Dean's Excellence Award" },
   { value: "4", label: "Projects Shipped" },
   { value: "3", label: "Certifications Earned" },

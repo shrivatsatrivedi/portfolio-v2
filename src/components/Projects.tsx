@@ -11,6 +11,8 @@ const PROJECTS = [
     title: "Emotion-Aware Conversational AI",
     stack: ["Python", "OpenAI API", "DeepFace", "Streamlit"],
     meta: "August 2025",
+    repo: "https://github.com/shrivatsatrivedi/EmotionAwareLLM-Frontend",
+    live: null,
     description:
       "Real-time facial emotion detection via webcam + context-aware empathetic responses from GPT. Built with an interactive Streamlit UI supporting live camera + chat.",
   },
@@ -18,6 +20,8 @@ const PROJECTS = [
     title: "FocusCycle Pomodoro",
     stack: ["Next.js", "TypeScript", "MediaPipe", "Vercel KV"],
     meta: "Live",
+    repo: "https://github.com/shrivatsatrivedi/focus-partner",
+    live: "https://focus-partner.vercel.app/",
     description:
       "Productivity app with an accountability buddy system — uses face detection and tab-switch monitoring to enforce focus. Passwordless JWT auth, real-time exit approval, Redis session state.",
   },
@@ -25,6 +29,8 @@ const PROJECTS = [
     title: "MERN Blog Application",
     stack: ["MongoDB", "Express.js", "React.js", "Node.js"],
     meta: "November 2024",
+    repo: "https://github.com/shrivatsatrivedi/blog-app",
+    live: null,
     description:
       "Full-stack blog with JWT-based auth, RESTful APIs, responsive React frontend, and MongoDB for CRUD operations.",
   },
@@ -32,6 +38,8 @@ const PROJECTS = [
     title: "This Portfolio",
     stack: ["Next.js", "TypeScript", "Tailwind", "Anime.js"],
     meta: "2026",
+    repo: "https://github.com/shrivatsatrivedi/portfolio",
+    live: null,
     description:
       "You're looking at it. Cinematic dark portfolio with particle physics, letter-stagger animations, and 3D card tilt.",
   },
@@ -98,6 +106,10 @@ export default function Projects() {
     return () => cleanups.forEach((fn) => fn());
   }, []);
 
+  const openRepo = (repo: string) => {
+    window.open(repo, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <section
       ref={sectionRef}
@@ -118,6 +130,17 @@ export default function Projects() {
               ref={(el) => {
                 cardRefs.current[i] = el;
               }}
+              role="link"
+              tabIndex={0}
+              data-cursor
+              aria-label={`${project.title} — view source on GitHub`}
+              onClick={() => openRepo(project.repo)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openRepo(project.repo);
+                }
+              }}
               className="project-card glass glow-hover flex h-full flex-col rounded-2xl p-8 opacity-0"
               style={{ transformStyle: "preserve-3d" }}
             >
@@ -126,7 +149,10 @@ export default function Projects() {
                   {project.title}
                 </h3>
                 <a
-                  href="#"
+                  href={project.repo}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="text-muted transition-colors hover:text-accent-light"
                   aria-label={`${project.title} on GitHub`}
                 >
@@ -134,16 +160,27 @@ export default function Projects() {
                 </a>
               </div>
 
-              <p className="mt-1 text-xs font-medium text-accent-light">
+              <div className="mt-1 flex items-center gap-3 text-xs font-medium text-accent-light">
                 {project.meta === "Live" ? (
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent-light" />
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-light" />
                     Live
                   </span>
                 ) : (
                   project.meta
                 )}
-              </p>
+                {project.live && (
+                  <a
+                    href={project.live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="link-underline inline-flex items-center gap-1 text-foreground/80 hover:text-accent-light"
+                  >
+                    Visit site ↗
+                  </a>
+                )}
+              </div>
 
               <p className="mt-4 flex-1 text-sm leading-relaxed text-muted">
                 {project.description}

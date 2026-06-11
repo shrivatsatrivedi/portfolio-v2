@@ -126,6 +126,47 @@ h4 {
   animation: pulse-glow 2.6s ease-in-out infinite;
 }
 
+/* Breathing glow orb behind the hero name */
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.12);
+    opacity: 1;
+  }
+}
+
+.orb-breathe {
+  animation: orb-breathe 6s ease-in-out infinite;
+}
+
+/* Hero scroll cue line */
+@keyframes scroll-drip {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  45% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  55% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+.scroll-line {
+  animation: scroll-drip 2s ease-in-out infinite;
+}
+
 /* Typewriter caret */
 @keyframes caret-blink {
   0%,

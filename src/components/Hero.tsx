@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { animate, stagger, createTimer } from "animejs";
+import { animate, stagger, createTimer, createAnimatable } from "animejs";
 import { rand } from "@/lib/animations";
+import { onPreloaderDone } from "@/lib/preloader";
 
 const NAME = "SHRIVATSA TRIVEDI";
 const ROLES = [
@@ -13,6 +14,7 @@ const ROLES = [
 ];
 const PARTICLE_COUNT = 80;
 const REPEL_RADIUS = 120;
+const LINK_DIST = 110;
 const COLORS = ["#6366f1", "#818cf8", "#a5b4fc"];
 
 type Particle = {
@@ -28,9 +30,10 @@ type Particle = {
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctaRefs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [typed, setTyped] = useState("");
 
-  // Particle field — Anime.js timer drives the per-frame loop
+  // Particle constellation — Anime.js timer drives the per-frame loop
   useEffect(() => {
     const canvas = canvasRef.current;
     const section = sectionRef.current;
@@ -47,7 +50,7 @@ export default function Hero() {
       y: rand(0, h),
       vx: rand(-0.25, 0.25),
       vy: rand(-0.25, 0.25),
-      r: rand(1, 1.5),
+      r: rand(1, 1.6),
       o: rand(0.25, 0.85),
       c: COLORS[Math.floor(rand(0, COLORS.length))],
     }));
@@ -73,6 +76,7 @@ export default function Hero() {
     const timer = createTimer({
       onUpdate: () => {
         ctx.clearRect(0, 0, w, h);
+
         for (const p of particles) {
           p.x += p.vx;
           p.y += p.vy;
@@ -92,7 +96,29 @@ export default function Hero() {
           if (p.x > w) p.x -= w;
           if (p.y < 0) p.y += h;
           if (p.y > h) p.y -= h;
+        }
 
+        // constellation lines between close particles
+        ctx.lineWidth = 0.6;
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const a = particles[i];
+            const b = particles[j];
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const d = Math.hypot(dx, dy);
+            if (d < LINK_DIST) {
+              ctx.globalAlpha = (1 - d / LINK_DIST) * 0.16;
+              ctx.strokeStyle = "#818cf8";
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        for (const p of particles) {
           ctx.globalAlpha = p.o;
           ctx.fillStyle = p.c;
           ctx.beginPath();
@@ -103,9 +129,6 @@ export default function Hero() {
       },
     });
 
-    // 0ms — canvas fades in
-    animate(canvas, { opacity: [0, 0.6], duration: 800, ease: "linear" });
-
     return () => {
       timer.cancel();
       window.removeEventListener("resize", onResize);
@@ -114,57 +137,73 @@ export default function Hero() {
     };
   }, []);
 
-  // Load sequence — name letters, tagline, CTAs, badge
+  // Load sequence — fires once the preloader curtain lifts
   useEffect(() => {
-    // 300ms — letter-by-letter name reveal
-    animate(".hero-letter", {
-      translateY: [40, 0],
-      opacity: [0, 1],
-      ease: "outExpo",
-      duration: 800,
-      delay: stagger(30, { start: 300 }),
-    });
-    // 800ms — typewriter wrapper appears (typing starts in its own effect)
-    animate(".hero-role", {
-      opacity: [0, 1],
-      ease: "outExpo",
-      duration: 500,
-      delay: 750,
-    });
-    // 1000ms — tagline
-    animate(".hero-tagline", {
-      opacity: [0, 1],
-      translateY: [16, 0],
-      ease: "outExpo",
-      duration: 800,
-      delay: 1000,
-    });
-    // 1200ms — CTAs slide up
-    animate(".hero-cta", {
-      opacity: [0, 1],
-      translateY: [24, 0],
-      ease: "outExpo",
-      duration: 700,
-      delay: stagger(120, { start: 1200 }),
-    });
-    // 1400ms — availability badge
-    animate(".hero-badge", {
-      opacity: [0, 1],
-      translateY: [12, 0],
-      ease: "outExpo",
-      duration: 700,
-      delay: 1400,
+    return onPreloaderDone(() => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        animate(canvas, { opacity: [0, 0.6], duration: 800, ease: "linear" });
+      }
+      animate(".hero-orb", {
+        opacity: [0, 1],
+        scale: [0.6, 1],
+        ease: "outExpo",
+        duration: 1400,
+      });
+      animate(".hero-letter", {
+        translateY: [60, 0],
+        rotateX: [-50, 0],
+        opacity: [0, 1],
+        ease: "outExpo",
+        duration: 900,
+        delay: stagger(30, { start: 300 }),
+      });
+      animate(".hero-role", {
+        opacity: [0, 1],
+        ease: "outExpo",
+        duration: 500,
+        delay: 750,
+      });
+      animate(".hero-tagline", {
+        opacity: [0, 1],
+        translateY: [16, 0],
+        ease: "outExpo",
+        duration: 800,
+        delay: 1000,
+      });
+      animate(".hero-cta", {
+        opacity: [0, 1],
+        translateY: [24, 0],
+        ease: "outExpo",
+        duration: 700,
+        delay: stagger(120, { start: 1200 }),
+      });
+      animate(".hero-badge", {
+        opacity: [0, 1],
+        translateY: [12, 0],
+        ease: "outExpo",
+        duration: 700,
+        delay: 1400,
+      });
+      animate(".hero-scroll", {
+        opacity: [0, 1],
+        ease: "outExpo",
+        duration: 700,
+        delay: 1800,
+      });
     });
   }, []);
 
-  // Typewriter — types, holds 1.8s, deletes, cycles
+  // Typewriter — starts with the rest of the sequence
   useEffect(() => {
     let role = 0;
     let char = 0;
     let deleting = false;
-    let t: ReturnType<typeof setTimeout>;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
 
     const tick = () => {
+      if (cancelled) return;
       const word = ROLES[role];
       if (!deleting) {
         char++;
@@ -188,9 +227,68 @@ export default function Hero() {
       }
     };
 
-    t = setTimeout(tick, 800);
-    return () => clearTimeout(t);
+    const unsub = onPreloaderDone(() => {
+      t = setTimeout(tick, 800);
+    });
+
+    return () => {
+      cancelled = true;
+      unsub();
+      if (t) clearTimeout(t);
+    };
   }, []);
+
+  // Magnetic CTAs — buttons lean toward the cursor, spring back on leave
+  useEffect(() => {
+    const cleanups: (() => void)[] = [];
+
+    for (const btn of ctaRefs.current) {
+      if (!btn) continue;
+      const magnet = createAnimatable(btn, {
+        translateX: 200,
+        translateY: 200,
+        ease: "outQuad",
+      });
+
+      const onMove = (e: MouseEvent) => {
+        const rect = btn.getBoundingClientRect();
+        const px = e.clientX - (rect.left + rect.width / 2);
+        const py = e.clientY - (rect.top + rect.height / 2);
+        magnet.translateX(px * 0.3);
+        magnet.translateY(py * 0.4);
+      };
+      const onLeave = () => {
+        magnet.translateX(0, 700, "outElastic(1, .4)");
+        magnet.translateY(0, 700, "outElastic(1, .4)");
+      };
+
+      btn.addEventListener("mousemove", onMove);
+      btn.addEventListener("mouseleave", onLeave);
+      cleanups.push(() => {
+        btn.removeEventListener("mousemove", onMove);
+        btn.removeEventListener("mouseleave", onLeave);
+        magnet.revert();
+      });
+    }
+
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
+
+  // Letters bounce when you sweep over them
+  const onLetterEnter = (e: React.MouseEvent<HTMLSpanElement>) => {
+    const el = e.currentTarget;
+    if (el.dataset.busy) return;
+    el.dataset.busy = "1";
+    animate(el, {
+      translateY: [0, -14, 0],
+      color: ["#e2e8f0", "#818cf8", "#e2e8f0"],
+      ease: "inOutQuad",
+      duration: 450,
+      onComplete: () => {
+        delete el.dataset.busy;
+      },
+    });
+  };
 
   const goTo = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -209,15 +307,30 @@ export default function Hero() {
         aria-hidden
       />
 
+      {/* breathing indigo glow behind the name */}
+      <div
+        className="hero-orb orb-breathe pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(99,102,241,0.16) 0%, rgba(99,102,241,0.05) 45%, transparent 70%)",
+        }}
+        aria-hidden
+      />
+
       <div className="relative z-10 flex flex-col items-center text-center">
         <h1
           className="font-heading flex flex-wrap justify-center gap-x-5 text-5xl font-bold tracking-[-0.02em] sm:text-6xl md:text-7xl lg:text-8xl"
+          style={{ perspective: "600px" }}
           aria-label={NAME}
         >
           {NAME.split(" ").map((word, wi) => (
-            <span key={wi} className="overflow-hidden whitespace-nowrap" aria-hidden>
+            <span key={wi} className="whitespace-nowrap" aria-hidden>
               {word.split("").map((ch, i) => (
-                <span key={i} className="hero-letter inline-block opacity-0">
+                <span
+                  key={i}
+                  className="hero-letter inline-block opacity-0"
+                  onMouseEnter={onLetterEnter}
+                >
                   {ch}
                 </span>
               ))}
@@ -236,6 +349,9 @@ export default function Hero() {
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <a
+            ref={(el) => {
+              ctaRefs.current[0] = el;
+            }}
             href="#projects"
             onClick={(e) => goTo(e, "projects")}
             className="hero-cta glow-hover rounded-full bg-accent px-8 py-3 text-sm font-semibold text-white opacity-0 transition-colors hover:bg-accent-light"
@@ -243,6 +359,9 @@ export default function Hero() {
             View Projects
           </a>
           <a
+            ref={(el) => {
+              ctaRefs.current[1] = el;
+            }}
             href="#contact"
             onClick={(e) => goTo(e, "contact")}
             className="hero-cta glow-hover rounded-full border border-accent/60 px-8 py-3 text-sm font-semibold text-accent-light opacity-0 transition-colors hover:border-accent-light hover:text-foreground"
@@ -254,6 +373,14 @@ export default function Hero() {
         <div className="hero-badge badge-pulse glass mt-14 rounded-full px-5 py-2 text-xs tracking-wide text-accent-light opacity-0 sm:text-sm">
           ✦ Open to Opportunities · June 2026
         </div>
+      </div>
+
+      {/* scroll cue */}
+      <div className="hero-scroll absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 opacity-0">
+        <span className="text-[10px] uppercase tracking-[0.35em] text-muted">
+          Scroll
+        </span>
+        <span className="scroll-line block h-10 w-px bg-gradient-to-b from-accent-light to-transparent" />
       </div>
     </section>
   );

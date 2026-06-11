@@ -1,3 +1,4 @@
+import Preloader from "@/components/Preloader";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import About from "@/components/About";
@@ -11,6 +12,7 @@ import Contact from "@/components/Contact";
 export default function Home() {
   return (
     <main className="flex flex-col">
+      <Preloader />
       <Navbar />
       <Hero />
       <About />
