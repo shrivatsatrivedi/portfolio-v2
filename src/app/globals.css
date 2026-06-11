@@ -12,13 +12,47 @@
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-muted: var(--text-muted);
+  --font-heading: var(--font-space-grotesk);
+  --font-body: var(--font-inter);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-inter), Inter, sans-serif;
-  scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-space-grotesk), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Custom cursor — hide native cursor on precise pointers only */
+@media (pointer: fine) {
+  body,
+  a,
+  button,
+  input,
+  textarea,
+  label {
+    cursor: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .custom-cursor {
+    display: none;
+  }
 }
 
 /* Custom scrollbar */
@@ -47,6 +81,19 @@ body {
   background: var(--card-bg);
 }
 
+/* Indigo glow on hover */
+.glow-hover {
+  transition:
+    box-shadow 0.35s ease,
+    border-color 0.35s ease,
+    transform 0.35s ease;
+}
+
+.glow-hover:hover {
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
 /* Noise texture overlay */
 .noise::before {
   content: "";
@@ -62,4 +109,97 @@ body {
 ::selection {
   background: var(--accent);
   color: #fff;
+}
+
+/* Pulsing glow — hero availability badge */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(99, 102, 241, 0.55);
+  }
+}
+
+.badge-pulse {
+  animation: pulse-glow 2.6s ease-in-out infinite;
+}
+
+/* Typewriter caret */
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0;
+  }
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  background: var(--accent-light);
+  vertical-align: -0.12em;
+  animation: caret-blink 1s step-end infinite;
+}
+
+/* Shimmer sweep — contact send button */
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  height: 100%;
+  width: 60%;
+  transform: skewX(-20deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.shimmer-btn:hover::after {
+  animation: shimmer-sweep 0.9s ease;
+}
+
+@keyframes shimmer-sweep {
+  to {
+    left: 150%;
+  }
+}
+
+/* Animated underline — contact links */
+.link-underline {
+  position: relative;
+}
+
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1px;
+  width: 100%;
+  background: var(--accent-light);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+
+.link-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
 }

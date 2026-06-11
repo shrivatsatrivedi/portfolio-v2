@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"console.log\\('animejs:', require\\('animejs/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\('next:', require\\('next/package.json'\\).version\\)\")",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

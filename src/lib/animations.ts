@@ -1,55 +1,85 @@
-import type { AnimeParams } from "animejs";
+import { animate, stagger } from "animejs";
 
-export function fadeInUp(targets: string | Element | Element[], delay = 0): AnimeParams {
-  return {
-    targets,
+type Targets = Parameters<typeof animate>[0];
+
+export const rand = (min: number, max: number) =>
+  Math.random() * (max - min) + min;
+
+export function fadeInUp(targets: Targets, delay = 0) {
+  return animate(targets, {
     opacity: [0, 1],
     translateY: [40, 0],
-    easing: "easeOutExpo",
+    ease: "outExpo",
     duration: 800,
     delay,
-  };
+  });
 }
 
-export function fadeIn(targets: string | Element | Element[], delay = 0): AnimeParams {
-  return {
-    targets,
+export function fadeIn(targets: Targets, delay = 0) {
+  return animate(targets, {
     opacity: [0, 1],
-    easing: "easeOutExpo",
+    ease: "outExpo",
     duration: 600,
     delay,
-  };
+  });
 }
 
-export function staggerFadeInUp(targets: string, stagger = 100): AnimeParams {
-  return {
-    targets,
+export function staggerFadeInUp(targets: Targets, staggerMs = 100, start = 0) {
+  return animate(targets, {
     opacity: [0, 1],
     translateY: [30, 0],
-    easing: "easeOutExpo",
+    ease: "outExpo",
     duration: 700,
-    delay: (_el: Element, i: number) => i * stagger,
-  };
+    delay: stagger(staggerMs, { start }),
+  });
 }
 
-export function slideInLeft(targets: string | Element | Element[], delay = 0): AnimeParams {
-  return {
-    targets,
+export function slideInLeft(targets: Targets, delay = 0) {
+  return animate(targets, {
     opacity: [0, 1],
     translateX: [-60, 0],
-    easing: "easeOutExpo",
+    ease: "outExpo",
     duration: 800,
     delay,
-  };
+  });
 }
 
-export function scaleIn(targets: string | Element | Element[], delay = 0): AnimeParams {
-  return {
-    targets,
+export function scaleIn(targets: Targets, delay = 0) {
+  return animate(targets, {
     opacity: [0, 1],
     scale: [0.85, 1],
-    easing: "easeOutExpo",
+    ease: "outExpo",
     duration: 700,
     delay,
-  };
+  });
+}
+
+/**
+ * Runs `cb` once when `el` first scrolls into view.
+ * Returns a cleanup function for useEffect.
+ */
+export function onceVisible(
+  el: Element | null,
+  cb: () => void,
+  threshold = 0.15,
+) {
+  if (!el) return () => {};
+  if (typeof IntersectionObserver === "undefined") {
+    cb();
+    return () => {};
+  }
+  const obs = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          obs.disconnect();
+          cb();
+          break;
+        }
+      }
+    },
+    { threshold },
+  );
+  obs.observe(el);
+  return () => obs.disconnect();
 }
