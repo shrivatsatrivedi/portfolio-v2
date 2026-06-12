@@ -79,7 +79,8 @@ export class ResumeGround {
       uWet: { value: 0 },
     };
 
-    const texture = new THREE.CanvasTexture(this.paint());
+    this.sourceCanvas = this.paint(); // InkMode samples real ink pixels from this
+    const texture = new THREE.CanvasTexture(this.sourceCanvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 

@@ -2,11 +2,13 @@
 // breath bar, low-air vignette, and touch controls on mobile.
 
 export class HUD {
-  constructor({ onRain, onFlood, onCamera, onJump, onSound }) {
+  constructor({ onRain, onFlood, onInk, onTour, onCamera, onJump, onSound }) {
     document.body.insertAdjacentHTML('beforeend', `
       <div id="hud-modes">
-        <button id="btn-rain" class="hud-btn" title="Rain Mode (R)">🌧 Chaos: Rain</button>
-        <button id="btn-flood" class="hud-btn" title="Flood Mode (F)">🌊 Chaos: Flood</button>
+        <button id="btn-rain" class="hud-btn" title="Rain Mode (R)">🌧 Rain</button>
+        <button id="btn-flood" class="hud-btn" title="Flood Mode (F)">🌊 Flood</button>
+        <button id="btn-ink" class="hud-btn" title="Ink Galaxy (C)">✨ Galaxy</button>
+        <button id="btn-tour" class="hud-btn" title="Cinematic Tour (P)">▶ Tour</button>
       </div>
       <button id="btn-camera" class="hud-btn" title="Toggle Camera (T)">📷 View: Top</button>
       <button id="btn-sound" class="hud-btn" title="Toggle Sound">🔊 Sound</button>
@@ -19,7 +21,8 @@ export class HUD {
         <p>Scroll / Pinch — Zoom</p>
         <p>T — Top ↔ Third person</p>
         <p>Click — Walk · Double-click — Learn</p>
-        <p>R — Rain mode · F — Flood mode</p>
+        <p>R — Rain · F — Flood · C — Galaxy</p>
+        <p>P — Cinematic tour</p>
         <p class="click-hint">In water: Space dives, Shift surfaces</p>
       </details>
       <div id="breath-bar"><label>Air</label><div id="breath-fill"></div></div>
@@ -31,6 +34,8 @@ export class HUD {
 
     this.btnRain = document.getElementById('btn-rain');
     this.btnFlood = document.getElementById('btn-flood');
+    this.btnInk = document.getElementById('btn-ink');
+    this.btnTour = document.getElementById('btn-tour');
     this.btnCamera = document.getElementById('btn-camera');
     this.btnSound = document.getElementById('btn-sound');
     this.breathBar = document.getElementById('breath-bar');
@@ -40,8 +45,15 @@ export class HUD {
 
     this.btnRain.addEventListener('click', onRain);
     this.btnFlood.addEventListener('click', onFlood);
+    this.btnInk.addEventListener('click', onInk);
+    this.btnTour.addEventListener('click', onTour);
     this.btnCamera.addEventListener('click', onCamera);
     this.btnSound.addEventListener('click', onSound);
+
+    // phones: start with the legend collapsed
+    if (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768) {
+      document.getElementById('controls-legend').removeAttribute('open');
+    }
     document.getElementById('btn-jump').addEventListener('pointerdown', onJump);
 
     // ---- touch joystick ----
@@ -86,8 +98,8 @@ export class HUD {
   }
 
   setModeActive(mode, active) {
-    const btn = mode === 'rain' ? this.btnRain : this.btnFlood;
-    btn.classList.toggle('active', active);
+    const btn = { rain: this.btnRain, flood: this.btnFlood, ink: this.btnInk, tour: this.btnTour }[mode];
+    if (btn) btn.classList.toggle('active', active);
   }
 
   setCameraLabel(mode) {

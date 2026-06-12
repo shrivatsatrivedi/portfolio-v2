@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
-import { clamp, damp, getCircleTexture } from '../utils.js';
+import { clamp, damp, getCircleTexture, QUALITY } from '../utils.js';
 
 // Chaos mode 2: the flood — reinvented.
 // NINE units of water depth. God rays shafting down from the surface,
@@ -58,7 +58,7 @@ export class FloodMode {
     this.t = 0;
 
     // ---- water surface ----
-    const geo = new THREE.PlaneGeometry(500, 500, 110, 110);
+    const geo = new THREE.PlaneGeometry(500, 500, QUALITY.waterSegs, QUALITY.waterSegs);
     geo.rotateX(-Math.PI / 2);
     this.waterUniforms = { uTime: { value: 0 } };
     this.water = new THREE.Mesh(geo, new THREE.ShaderMaterial({
@@ -117,7 +117,7 @@ export class FloodMode {
     scene.add(this.rays);
 
     // ---- plankton: slow drifting specks ----
-    const pCount = 320;
+    const pCount = QUALITY.plankton;
     this.planktonPos = new Float32Array(pCount * 3);
     for (let i = 0; i < pCount; i++) {
       this.planktonPos[i * 3] = (Math.random() - 0.5) * 30;

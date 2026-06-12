@@ -25,6 +25,7 @@ export class CharacterController {
     this.hud = hud;
     this.audio = audio;
     this.wasInWater = false;
+    this.gravityScale = 1; // InkMode drops this for moon-walk floatiness
 
     this.pos = character.root.position;
     this.vel = new THREE.Vector3();
@@ -143,9 +144,9 @@ export class CharacterController {
     this.vel.z = damp(this.vel.z, desired.z, 12, dt);
 
     // gravity + jump
-    this.vel.y += GRAVITY * dt;
+    this.vel.y += GRAVITY * this.gravityScale * dt;
     if (this.jumpQueued && this.grounded && !this.sitting) {
-      this.vel.y = JUMP_IMPULSE;
+      this.vel.y = JUMP_IMPULSE * (this.gravityScale < 1 ? 0.65 : 1);
       this.grounded = false;
       this.onBlock = null;
     }

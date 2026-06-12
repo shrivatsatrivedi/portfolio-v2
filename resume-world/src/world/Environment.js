@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
-import { getCircleTexture } from '../utils.js';
+import { getCircleTexture, QUALITY } from '../utils.js';
 
 // Rich dusk environment: brighter neutral key light so the paper reads
 // WHITE, a starfield, a glowing "ink ocean" floor with a fading grid,
@@ -37,7 +37,7 @@ export class Environment {
     this.sun = new THREE.DirectionalLight(0xfff6ee, 2.3);
     this.sun.position.set(14, 24, 12);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.mapSize.set(QUALITY.shadow, QUALITY.shadow);
     this.sun.shadow.camera.near = 0.5;
     this.sun.shadow.camera.far = 90;
     this.sun.shadow.camera.left = -26;
@@ -114,7 +114,7 @@ export class Environment {
     scene.add(glow);
 
     // ---- starfield ----
-    const starCount = 1400;
+    const starCount = QUALITY.stars;
     const starPos = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
       const r = 160 + Math.random() * 220;
@@ -150,7 +150,7 @@ export class Environment {
     }
 
     // ---- dust motes near the page ----
-    const moteCount = 260;
+    const moteCount = QUALITY.motes;
     this.motePos = new Float32Array(moteCount * 3);
     for (let i = 0; i < moteCount; i++) {
       this.motePos[i * 3] = (Math.random() - 0.5) * 44;
@@ -165,6 +165,8 @@ export class Environment {
     }));
     scene.add(this.motes);
 
+    this.buildDeskProps(scene);
+
     // chaos modes restore from these
     this.defaults = {
       turbidity: 2.0,
@@ -177,10 +179,129 @@ export class Environment {
     };
   }
 
+  // You are ant-sized on a desk at midnight: a colossal pen, a paperclip,
+  // a coffee mug steaming on the horizon, the ring stain it left behind.
+  buildDeskProps(scene) {
+    const dark = (c, r = 0.4) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: 0.3 });
+
+    // ---- giant pen, lying on the desk ----
+    const pen = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 26, 10), dark(0x2c2c54, 0.35));
+    body.rotation.z = Math.PI / 2;
+    pen.add(body);
+    const grip = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 5, 10), dark(0x4a90d9, 0.5));
+    grip.rotation.z = Math.PI / 2;
+    grip.position.x = -11;
+    pen.add(grip);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(1.1, 4.5, 10), dark(0xb8b8c8, 0.25));
+    tip.rotation.z = Math.PI / 2;
+    tip.position.x = -17.2;
+    pen.add(tip);
+    const nib = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.6, 8), dark(0x15151f, 0.2));
+    nib.rotation.z = Math.PI / 2;
+    nib.position.x = -20;
+    pen.add(nib);
+    const clip = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 1), dark(0xb8b8c8, 0.25));
+    clip.position.set(8, 1.35, 0);
+    pen.add(clip);
+    pen.position.set(34, 0.95, -16);
+    pen.rotation.y = 0.5;
+    scene.add(pen);
+
+    // ---- paperclip: a tube bent into the classic loop ----
+    const u = 2.2; // clip scale unit
+    const path = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-1.5 * u, 0, -3 * u), new THREE.Vector3(-1.5 * u, 0, 2.4 * u),
+      new THREE.Vector3(0, 0, 3 * u), new THREE.Vector3(1.5 * u, 0, 2.4 * u),
+      new THREE.Vector3(1.5 * u, 0, -2 * u), new THREE.Vector3(0.4 * u, 0, -2.6 * u),
+      new THREE.Vector3(-0.7 * u, 0, -2 * u), new THREE.Vector3(-0.7 * u, 0, 1.4 * u),
+      new THREE.Vector3(0.2 * u, 0, 1.9 * u), new THREE.Vector3(0.8 * u, 0, 1.4 * u),
+      new THREE.Vector3(0.8 * u, 0, -1 * u),
+    ], false, 'catmullrom', 0.1);
+    const clipMesh = new THREE.Mesh(
+      new THREE.TubeGeometry(path, 90, 0.32, 6, false),
+      new THREE.MeshStandardMaterial({ color: 0xcdd2e0, roughness: 0.25, metalness: 0.85 })
+    );
+    clipMesh.position.set(-32, 0.34, 16);
+    clipMesh.rotation.y = -0.7;
+    scene.add(clipMesh);
+
+    // ---- coffee ring stain + the mug that made it ----
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(6.2, 7.6, 48),
+      new THREE.MeshBasicMaterial({ color: 0x4a3424, transparent: true, opacity: 0.22, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(-26, -0.165, -28);
+    scene.add(ring);
+
+    const mug = new THREE.Group();
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(7, 6.4, 12, 18, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0x35355e, roughness: 0.6, side: THREE.DoubleSide }));
+    cup.position.y = 6;
+    mug.add(cup);
+    const coffee = new THREE.Mesh(new THREE.CircleGeometry(6.6, 18),
+      new THREE.MeshStandardMaterial({ color: 0x241710, roughness: 0.3 }));
+    coffee.rotation.x = -Math.PI / 2;
+    coffee.position.y = 11.2;
+    mug.add(coffee);
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.9, 8, 18, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0x35355e, roughness: 0.6 }));
+    handle.position.set(7.4, 6, 0);
+    handle.rotation.z = -Math.PI / 2;
+    mug.add(handle);
+    mug.position.set(-52, -0.15, -44);
+    scene.add(mug);
+
+    // steam rising from the mug
+    const steamCount = 40;
+    this.steamPos = new Float32Array(steamCount * 3);
+    for (let i = 0; i < steamCount; i++) this.resetSteam(i, true);
+    const sGeo = new THREE.BufferGeometry();
+    sGeo.setAttribute('position', new THREE.BufferAttribute(this.steamPos, 3));
+    this.steam = new THREE.Points(sGeo, new THREE.PointsMaterial({
+      color: 0xd8dcf0, size: 1.6, map: getCircleTexture(),
+      transparent: true, opacity: 0.16, depthWrite: false,
+    }));
+    scene.add(this.steam);
+
+    // a sticky note, because someone should really call him
+    const note = document.createElement('canvas');
+    note.width = note.height = 128;
+    const nctx = note.getContext('2d');
+    nctx.fillStyle = '#8e93f5';
+    nctx.fillRect(0, 0, 128, 128);
+    nctx.fillStyle = 'rgba(20,20,40,0.75)';
+    nctx.font = 'bold 26px cursive';
+    nctx.fillText('HIRE', 28, 56);
+    nctx.fillText('HIM ✓', 26, 92);
+    const sticky = new THREE.Mesh(
+      new THREE.PlaneGeometry(9, 9),
+      new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(note), roughness: 0.95 })
+    );
+    sticky.rotation.set(-Math.PI / 2, 0, 0.6);
+    sticky.position.set(27, -0.16, 25);
+    scene.add(sticky);
+  }
+
+  resetSteam(i, randomize = false) {
+    this.steamPos[i * 3] = -52 + (Math.random() - 0.5) * 5;
+    this.steamPos[i * 3 + 1] = 11 + (randomize ? Math.random() * 14 : 0);
+    this.steamPos[i * 3 + 2] = -44 + (Math.random() - 0.5) * 5;
+  }
+
   update(dt) {
     this.t += dt;
     this.oceanUniforms.uTime.value = this.t;
     this.stars.rotation.y += dt * 0.004;
+
+    // steam drifts up and dissipates
+    for (let i = 0; i < this.steamPos.length / 3; i++) {
+      this.steamPos[i * 3 + 1] += dt * (1.1 + (i % 4) * 0.2);
+      this.steamPos[i * 3] += Math.sin(this.t * 0.7 + i) * dt * 0.6;
+      if (this.steamPos[i * 3 + 1] > 26) this.resetSteam(i);
+    }
+    this.steam.geometry.attributes.position.needsUpdate = true;
 
     for (const s of this.sheets) {
       s.position.y = s.userData.baseY + Math.sin(this.t * 0.4 + s.userData.ph) * 0.8;

@@ -2,6 +2,24 @@
 
 import * as THREE from 'three';
 
+// Device quality profile — phones get lighter particle counts and effects.
+export const QUALITY = (() => {
+  const mobile = typeof matchMedia !== 'undefined' &&
+    (matchMedia('(pointer: coarse)').matches || window.innerWidth < 768);
+  return {
+    mobile,
+    dpr: mobile ? 1.5 : 2,
+    rain: mobile ? 2600 : 5000,
+    stars: mobile ? 800 : 1400,
+    motes: mobile ? 140 : 260,
+    ink: mobile ? 4200 : 7500,
+    waterSegs: mobile ? 64 : 110,
+    plankton: mobile ? 160 : 320,
+    shadow: mobile ? 1024 : 2048,
+    outline: !mobile,
+  };
+})();
+
 export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
 // Soft round sprite for Points materials (otherwise particles are squares).

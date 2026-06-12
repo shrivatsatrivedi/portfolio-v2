@@ -2,12 +2,32 @@
 // Rain hiss, thunder rumble, water lapping, underwater muffle, splash.
 // The context unlocks on the first user gesture (browser autoplay policy).
 
+// A-minor pentatonic across two octaves — everything sounds gentle together.
+const SCALE = [220, 261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25, 783.99];
+// Pad chord roots: Am(add9) -> Fmaj7 -> C -> G, as raw frequencies.
+const CHORDS = [
+  [110, 164.81, 246.94],
+  [87.31, 220, 329.63],
+  [130.81, 196, 329.63],
+  [98, 246.94, 293.66],
+];
+const MOODS = {
+  calm:  { rate: 1.0, octave: 1, lp: 700, density: 0.75 },
+  storm: { rate: 1.8, octave: 0.5, lp: 320, density: 0.5 },
+  deep:  { rate: 2.2, octave: 0.5, lp: 260, density: 0.45 },
+  space: { rate: 1.3, octave: 2, lp: 1100, density: 0.6 },
+  tour:  { rate: 0.7, octave: 1, lp: 800, density: 0.95 },
+};
+
 export class AudioEngine {
   constructor() {
     this.ctx = null;
     this.muted = false;
     this.pending = { rain: false, water: false, underwater: false };
     this.voices = {};
+    this.mood = MOODS.calm;
+    this.musicOn = false;
+    this.chordIndex = 0;
   }
 
   unlock() {
@@ -147,5 +167,88 @@ export class AudioEngine {
     if (!this.ctx || !this.voices.water) return;
     const f = this.voices.water.filter.frequency;
     f.linearRampToValueAtTime(under ? 200 : 650, this.ctx.currentTime + 0.4);
+  }
+
+  // ---------------------------------------------------- generative music
+
+  startMusic() {
+    if (!this.ctx || this.musicOn) return;
+    this.musicOn = true;
+
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = 0;
+    this.musicGain.connect(this.master);
+    this.musicGain.gain.linearRampToValueAtTime(0.16, this.ctx.currentTime + 3);
+
+    this.padFilter = this.ctx.createBiquadFilter();
+    this.padFilter.type = 'lowpass';
+    this.padFilter.frequency.value = this.mood.lp;
+    this.padFilter.connect(this.musicGain);
+
+    // pluck echo
+    this.delay = this.ctx.createDelay(1);
+    this.delay.delayTime.value = 0.42;
+    const fb = this.ctx.createGain();
+    fb.gain.value = 0.32;
+    this.delay.connect(fb).connect(this.delay);
+    this.delay.connect(this.musicGain);
+
+    this.playChord();
+    this.chordTimer = setInterval(() => this.playChord(), 9000);
+    this.schedulePluck();
+  }
+
+  playChord() {
+    if (!this.ctx || !this.musicOn) return;
+    const freqs = CHORDS[this.chordIndex % CHORDS.length];
+    this.chordIndex++;
+    const t0 = this.ctx.currentTime;
+    for (const f of freqs) {
+      for (const [type, det, vol] of [['sine', 0, 0.05], ['triangle', 3, 0.025]]) {
+        const osc = this.ctx.createOscillator();
+        osc.type = type;
+        osc.frequency.value = f;
+        osc.detune.value = det;
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0, t0);
+        g.gain.linearRampToValueAtTime(vol, t0 + 3);
+        g.gain.setValueAtTime(vol, t0 + 6.5);
+        g.gain.linearRampToValueAtTime(0, t0 + 10);
+        osc.connect(g).connect(this.padFilter);
+        osc.start(t0);
+        osc.stop(t0 + 10.2);
+      }
+    }
+    this.padFilter.frequency.linearRampToValueAtTime(this.mood.lp, t0 + 2);
+  }
+
+  schedulePluck() {
+    if (!this.musicOn) return;
+    const wait = (700 + Math.random() * 1600) * this.mood.rate;
+    this.pluckTimer = setTimeout(() => {
+      if (this.ctx && this.musicOn && !this.muted && Math.random() < this.mood.density) {
+        const f = SCALE[Math.floor(Math.random() * SCALE.length)] * this.mood.octave;
+        const t0 = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.value = f;
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0.06, t0);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
+        osc.connect(g);
+        g.connect(this.musicGain);
+        g.connect(this.delay);
+        osc.start(t0);
+        osc.stop(t0 + 1.5);
+      }
+      this.schedulePluck();
+    }, wait);
+  }
+
+  setMood(name) {
+    this.mood = MOODS[name] || MOODS.calm;
+    if (this.ctx && this.musicOn) {
+      this.padFilter.frequency.linearRampToValueAtTime(this.mood.lp, this.ctx.currentTime + 1.5);
+    }
   }
 }

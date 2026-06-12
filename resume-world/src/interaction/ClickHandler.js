@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { sectionAt } from './ResumeContent.js';
-import { clamp } from '../utils.js';
+import { clamp, QUALITY } from '../utils.js';
 
 // Single click: walk to the point (with a ripple). Double click: run to the
 // section and have the character introduce it. Click/tap detection is
@@ -28,6 +28,7 @@ export class ClickHandler {
     this.lastClick = { time: 0, x: 0, y: 0 };
     this.singleTimer = null;
     this.downPos = null;
+    this.holograms = null; // wired in main.js
 
     dom.addEventListener('pointerdown', (e) => {
       this.downPos = { x: e.clientX, y: e.clientY };
@@ -39,6 +40,51 @@ export class ClickHandler {
       if (moved > 8) return;
       this.onTap(e.clientX, e.clientY);
     });
+
+    // desktop: glow the section under the cursor so it reads as clickable
+    if (!QUALITY.mobile) {
+      this.hover = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1),
+        new THREE.MeshBasicMaterial({
+          color: 0x6366f1, transparent: true, opacity: 0.07,
+          blending: THREE.AdditiveBlending, depthWrite: false,
+        })
+      );
+      this.hover.rotation.x = -Math.PI / 2;
+      this.hover.position.y = 0.02;
+      this.hover.visible = false;
+      this.scene.add(this.hover);
+      let lastCheck = 0;
+      dom.addEventListener('pointermove', (e) => {
+        const now = performance.now();
+        if (now - lastCheck < 80) return;
+        lastCheck = now;
+        const point = this.pointFromScreen(e.clientX, e.clientY);
+        const section = point ? sectionAt(point.x, point.z) : null;
+        if (section) {
+          const b = section.worldBox;
+          this.hover.scale.set(b.width, b.depth, 1);
+          this.hover.position.set(b.x + b.width / 2, 0.02, b.z + b.depth / 2);
+          this.hover.visible = true;
+          dom.style.cursor = 'pointer';
+        } else {
+          this.hover.visible = false;
+          dom.style.cursor = 'default';
+        }
+      });
+    }
+  }
+
+  // Narrate a section right now (used by double-click arrival and Tour mode).
+  present(section) {
+    const prefix = this.getPrefix(section);
+    this.holograms?.show(section);
+    if (this.firstInteraction && !this.controller.inWater) {
+      this.firstInteraction = false;
+      this.character.celebrate(() => this.bubble.showSection(section, prefix));
+    } else {
+      this.bubble.showSection(section, prefix);
+    }
   }
 
   onTap(x, y) {
@@ -102,15 +148,7 @@ export class ClickHandler {
     );
     this.nudgeOutOfBlocks(target);
 
-    const speak = () => {
-      const prefix = this.getPrefix(section);
-      if (this.firstInteraction && !this.controller.inWater) {
-        this.firstInteraction = false;
-        this.character.celebrate(() => this.bubble.showSection(section, prefix));
-      } else {
-        this.bubble.showSection(section, prefix);
-      }
-    };
+    const speak = () => this.present(section);
 
     const dist = this.character.root.position.distanceTo(target);
     if (dist < 2.2) {

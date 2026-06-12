@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
-import { getCircleTexture } from '../utils.js';
+import { getCircleTexture, QUALITY } from '../utils.js';
 
 // Chaos mode 1: the storm — reinvented.
 // Wind-slanted rain, branching lightning bolts with screen flash + thunder,
@@ -8,7 +8,7 @@ import { getCircleTexture } from '../utils.js';
 // glossy-wet while the ink dissolves, the character pulling out an indigo
 // umbrella while walking (and breaking down crying when they stop).
 
-const DROP_COUNT = 5000;
+const DROP_COUNT = QUALITY.rain;
 const AREA = { x: 36, z: 46, top: 20 };
 const SPLASH_POOL = 36;
 

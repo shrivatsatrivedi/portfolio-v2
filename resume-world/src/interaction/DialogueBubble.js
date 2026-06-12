@@ -28,6 +28,7 @@ export class DialogueBubble {
     this.typeTimer = null;
     this.hideTimer = null;
     this.visible = false;
+    this.onHide = null; // optional hook (used to retract holograms)
   }
 
   showSection(section, prefix = '') {
@@ -70,6 +71,7 @@ export class DialogueBubble {
   hide() {
     if (!this.visible) return;
     this.visible = false;
+    this.onHide?.();
     clearInterval(this.typeTimer);
     this.typeTimer = null;
     this.el.classList.remove('visible');
