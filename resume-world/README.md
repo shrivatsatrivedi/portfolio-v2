@@ -27,15 +27,18 @@ directory `resume-world`).
 | Space | Jump (dive while swimming) |
 | E | Sit on a heading block |
 | Click | Walk to that point |
-| Double-click | Run to a section and hear about it |
-| T | Toggle top-down / third-person camera |
-| Pinch (ctrl+scroll) | Blend the camera tilt, Apple Maps style |
-| Scroll | Pan around the page |
-| R | Rain mode — storm + ink dissolve |
-| F | Flood mode — rising water + breath bar |
+| Double-click | Run to a section, hear about it, see its hologram |
+| Drag | Rotate the view |
+| Scroll / pinch | Zoom |
+| T | Toggle Top ↔ Third-person presets |
+| R | Rain — wind, lightning, thunder, ink dissolve, umbrella |
+| F | Flood — 9 units of water, god rays, caustics, fish, breath bar |
+| C | Ink Galaxy — the résumé's ink lifts into a spiral galaxy |
+| P | Cinematic tour — sit back, the character narrates everything |
 
 On touch devices a joystick appears bottom-left and a jump button
-bottom-right; tap = click, double-tap = double-click.
+bottom-right; tap = click, double-tap = double-click, one-finger drag
+rotates, two-finger pinch zooms.
 
 ## Implementation notes
 
