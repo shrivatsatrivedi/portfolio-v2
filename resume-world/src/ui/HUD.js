@@ -2,27 +2,29 @@
 // breath bar, low-air vignette, and touch controls on mobile.
 
 export class HUD {
-  constructor({ onRain, onFlood, onCamera, onJump }) {
+  constructor({ onRain, onFlood, onCamera, onJump, onSound }) {
     document.body.insertAdjacentHTML('beforeend', `
       <div id="hud-modes">
         <button id="btn-rain" class="hud-btn" title="Rain Mode (R)">🌧 Chaos: Rain</button>
         <button id="btn-flood" class="hud-btn" title="Flood Mode (F)">🌊 Chaos: Flood</button>
       </div>
-      <button id="btn-camera" class="hud-btn" title="Toggle Camera (T)">📷 Top View</button>
+      <button id="btn-camera" class="hud-btn" title="Toggle Camera (T)">📷 View: Top</button>
+      <button id="btn-sound" class="hud-btn" title="Toggle Sound">🔊 Sound</button>
       <details id="controls-legend" open>
         <summary>Controls</summary>
         <p>WASD / ↑↓←→ — Move</p>
         <p>Shift — Run · Space — Jump</p>
         <p>E — Sit (on heading blocks)</p>
-        <p>Click — Walk to section</p>
-        <p>Double-click — Learn about it</p>
-        <p>T — Toggle camera · Pinch — Tilt</p>
-        <p>Scroll — Pan around the page</p>
+        <p>Drag — Rotate the view</p>
+        <p>Scroll / Pinch — Zoom</p>
+        <p>T — Top ↔ Third person</p>
+        <p>Click — Walk · Double-click — Learn</p>
         <p>R — Rain mode · F — Flood mode</p>
         <p class="click-hint">In water: Space dives, Shift surfaces</p>
       </details>
       <div id="breath-bar"><label>Air</label><div id="breath-fill"></div></div>
       <div id="vignette"></div>
+      <div id="flash"></div>
       <div id="joystick"><div class="nub"></div></div>
       <button id="btn-jump" class="hud-btn" title="Jump">⤒</button>
     `);
@@ -30,13 +32,16 @@ export class HUD {
     this.btnRain = document.getElementById('btn-rain');
     this.btnFlood = document.getElementById('btn-flood');
     this.btnCamera = document.getElementById('btn-camera');
+    this.btnSound = document.getElementById('btn-sound');
     this.breathBar = document.getElementById('breath-bar');
     this.breathFill = document.getElementById('breath-fill');
     this.vignette = document.getElementById('vignette');
+    this.flashEl = document.getElementById('flash');
 
     this.btnRain.addEventListener('click', onRain);
     this.btnFlood.addEventListener('click', onFlood);
     this.btnCamera.addEventListener('click', onCamera);
+    this.btnSound.addEventListener('click', onSound);
     document.getElementById('btn-jump').addEventListener('pointerdown', onJump);
 
     // ---- touch joystick ----
@@ -85,8 +90,21 @@ export class HUD {
     btn.classList.toggle('active', active);
   }
 
-  setCameraLabel(topDown) {
-    this.btnCamera.textContent = topDown ? '📷 Top View' : '📷 Third Person';
+  setCameraLabel(mode) {
+    this.btnCamera.textContent = mode === 'top' ? '📷 View: Top' : '📷 View: Third';
+  }
+
+  setSoundLabel(muted) {
+    this.btnSound.textContent = muted ? '🔇 Muted' : '🔊 Sound';
+  }
+
+  flash(strength = 0.5) {
+    this.flashEl.style.transition = 'none';
+    this.flashEl.style.opacity = strength;
+    requestAnimationFrame(() => {
+      this.flashEl.style.transition = 'opacity 0.45s ease-out';
+      this.flashEl.style.opacity = 0;
+    });
   }
 
   showBreath(show) {

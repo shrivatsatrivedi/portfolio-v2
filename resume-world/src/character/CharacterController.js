@@ -8,8 +8,8 @@ import { clamp, damp, dampAngle } from '../utils.js';
 // flood mode. The world is one flat sheet + a handful of boxes, so a full
 // physics engine isn't needed to get snappy, predictable movement.
 
-const WALK_SPEED = 4;
-const RUN_SPEED = 8;
+const WALK_SPEED = 4.5;
+const RUN_SPEED = 9;
 const JUMP_IMPULSE = 8;
 const GRAVITY = -20;
 const RADIUS = 0.35;
@@ -18,11 +18,13 @@ const BOUND_X = PAGE.width / 2 - 0.5;
 const BOUND_Z = PAGE.depth / 2 - 0.5;
 
 export class CharacterController {
-  constructor(character, colliders, cameraRig, hud) {
+  constructor(character, colliders, cameraRig, hud, audio = null) {
     this.character = character;
     this.colliders = colliders;
     this.rig = cameraRig;
     this.hud = hud;
+    this.audio = audio;
+    this.wasInWater = false;
 
     this.pos = character.root.position;
     this.vel = new THREE.Vector3();
@@ -96,9 +98,14 @@ export class CharacterController {
 
   update(dt) {
     if (this.water && this.water.level > 0.45) {
+      if (!this.wasInWater) {
+        this.wasInWater = true;
+        this.audio?.splash();
+      }
       this.updateSwim(dt);
       return;
     }
+    this.wasInWater = false;
     this.inWater = false;
     this.submerged = false;
 
@@ -215,12 +222,12 @@ export class CharacterController {
     this.inWater = true;
     this.sitting = false;
 
-    const floatY = Math.max(0.15, level - 1.1);
+    const floatY = Math.max(0.15, level - 1.15);
     const manual = this.inputDir();
 
     let desired = new THREE.Vector3();
     if (manual) {
-      desired.copy(manual).multiplyScalar(WALK_SPEED * 0.6 * (this.keys.has('shift') ? 1.4 : 1));
+      desired.copy(manual).multiplyScalar(WALK_SPEED * 0.75);
       this.moveTarget = null;
     } else if (this.moveTarget) {
       const to = new THREE.Vector3().subVectors(this.moveTarget, this.pos);
@@ -230,7 +237,7 @@ export class CharacterController {
         const cb = this.onArrive; this.onArrive = null;
         if (cb) cb();
       } else {
-        desired.copy(to.normalize()).multiplyScalar(WALK_SPEED * 0.6);
+        desired.copy(to.normalize()).multiplyScalar(WALK_SPEED * 0.75);
       }
     }
 
@@ -239,16 +246,16 @@ export class CharacterController {
 
     // vertical: Space dives, Shift ascends, otherwise buoyancy pulls to surface
     let targetVy;
-    if (this.keys.has(' ')) targetVy = -3;
-    else if (this.keys.has('shift')) targetVy = 3;
-    else targetVy = clamp((floatY - this.pos.y) * 2.5, -2, 2);
+    if (this.keys.has(' ')) targetVy = -3.5;
+    else if (this.keys.has('shift')) targetVy = 3.5;
+    else targetVy = clamp((floatY - this.pos.y) * 2.0, -2, 2);
     this.vel.y = damp(this.vel.y, targetVy, 5, dt);
 
     this.pos.x += this.vel.x * dt;
     this.pos.z += this.vel.z * dt;
     this.pos.y += this.vel.y * dt;
 
-    this.pos.y = clamp(this.pos.y, 0.1, Math.max(0.1, level - 0.8));
+    this.pos.y = clamp(this.pos.y, 0.2, Math.max(0.2, level - 0.55));
     this.pos.x = clamp(this.pos.x, -BOUND_X, BOUND_X);
     this.pos.z = clamp(this.pos.z, -BOUND_Z, BOUND_Z);
 

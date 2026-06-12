@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { gsap } from 'gsap';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -20,6 +19,7 @@ import { GREETING } from './interaction/ResumeContent.js';
 import { RainMode } from './modes/RainMode.js';
 import { FloodMode } from './modes/FloodMode.js';
 import { HUD } from './ui/HUD.js';
+import { AudioEngine } from './audio/AudioEngine.js';
 
 // ---------------------------------------------------------------- renderer
 
@@ -53,15 +53,22 @@ const ground = new ResumeGround(scene, renderer);
 const obstacles = new HeadingObstacles(scene);
 const character = new Character(scene);
 const rig = new CameraRig(camera, character, renderer.domElement);
+const audio = new AudioEngine();
+
+// browsers require a user gesture before audio can start
+const unlockAudio = () => audio.unlock();
+window.addEventListener('pointerdown', unlockAudio, { once: true });
+window.addEventListener('keydown', unlockAudio, { once: true });
 
 const hud = new HUD({
   onRain: () => rain.toggle(),
   onFlood: () => flood.toggle(),
-  onCamera: () => hud.setCameraLabel(rig.toggle() < 0.5),
+  onCamera: () => hud.setCameraLabel(rig.toggle()),
   onJump: () => { controller.jumpQueued = true; },
+  onSound: () => hud.setSoundLabel(audio.toggleMute()),
 });
 
-const controller = new CharacterController(character, obstacles.colliders, rig, hud);
+const controller = new CharacterController(character, obstacles.colliders, rig, hud, audio);
 const bubble = new DialogueBubble(character);
 
 // ---------------------------------------------------------------- post fx
@@ -72,9 +79,9 @@ composer.addPass(new RenderPass(scene, camera));
 const outlinePass = new OutlinePass(
   new THREE.Vector2(window.innerWidth, window.innerHeight), scene, camera, [character.meshRoot]
 );
-outlinePass.edgeStrength = 3;
-outlinePass.edgeThickness = 2;
-outlinePass.visibleEdgeColor.set('#ffffff');
+outlinePass.edgeStrength = 1.6;
+outlinePass.edgeThickness = 1;
+outlinePass.visibleEdgeColor.set('#dfe4ff');
 outlinePass.hiddenEdgeColor.set('#223');
 composer.addPass(outlinePass);
 
@@ -107,8 +114,8 @@ composer.addPass(new OutputPass());
 
 // ---------------------------------------------------------------- modes
 
-const rain = new RainMode(scene, env, ground, character, controller, hud);
-const flood = new FloodMode(scene, character, controller, ground, hud, underwaterPass.uniforms.uAmount, camera);
+const rain = new RainMode(scene, env, ground, character, controller, hud, audio);
+const flood = new FloodMode(scene, character, controller, ground, hud, underwaterPass.uniforms.uAmount, camera, audio);
 
 const clicks = new ClickHandler(
   camera, renderer.domElement, scene, controller, character, bubble, obstacles.colliders,
@@ -122,7 +129,7 @@ window.addEventListener('keydown', (e) => {
   const k = e.key.toLowerCase();
   if (k === 'r') rain.toggle();
   if (k === 'f') flood.toggle();
-  if (k === 't') hud.setCameraLabel(rig.toggle() < 0.5);
+  if (k === 't') hud.setCameraLabel(rig.toggle());
   if (k === 'escape') bubble.hide();
 });
 
@@ -141,9 +148,10 @@ function reveal() {
   revealed = true;
   loader.classList.add('done');
   if (firstVisit) {
-    rig.introH = 32;
-    gsap.to(rig, { introH: 0, duration: 2.5, ease: 'power3.inOut' });
+    // rig.dist starts far out and damps to the preset — cinematic swoop
     setTimeout(() => bubble.show(GREETING, null, false, 4000), 3400);
+  } else {
+    rig.dist = 30;
   }
 }
 
@@ -157,6 +165,7 @@ function animate() {
   character.update(dt);
   rig.update(dt);
   ground.update(dt);
+  env.update(dt);
   rain.update(dt);
   flood.update(dt);
 

@@ -4,17 +4,25 @@ import { PAGE, HEADINGS } from '../interaction/ResumeContent.js';
 // The résumé is painted onto a canvas at A4 proportions and used as the
 // ground texture. All positions are derived from the same world coordinates
 // used by the clickable sections so paper and metadata stay aligned.
+//
+// The shader injection adds four live effects to the standard PBR material:
+//   uDissolve — rain washes the ink away (with bleed front)
+//   uWarp     — underwater refraction wobble
+//   uCaustic  — animated light caustics while flooded
+//   uWet      — darkens + glosses the paper while raining
 
 const W = 2048;
 const H = Math.round((PAGE.depth / PAGE.width) * W); // 2867
 
-const INK = '#1c1c2e';
-const FAINT = '#3a3a52';
+const INK = '#15151f';
+const FAINT = '#41414f';
 
 const NOISE_GLSL = /* glsl */ `
 uniform float uDissolve;
 uniform float uTime;
 uniform float uWarp;
+uniform float uCaustic;
+uniform float uWet;
 float rwHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
 float rwNoise(vec2 p){
   vec2 i = floor(p); vec2 f = fract(p);
@@ -42,16 +50,21 @@ const MAP_FRAGMENT = /* glsl */ `
     float streak = rwFbm(vec2(rwUv.x * 42.0, rwUv.y * 6.0 - uDissolve * 3.0));
     float n = rwFbm(rwUv * 7.0) + streak * 0.15;
     float prog = uDissolve * 1.3;
-    // 1 where the ink has fully washed away
     float washed = 1.0 - smoothstep(prog - 0.3, prog, n);
-    // ink bleed band just ahead of the wash front
     float band = smoothstep(prog - 0.55, prog - 0.28, n) * (1.0 - smoothstep(prog - 0.28, prog + 0.02, n));
     vec3 ink = vec3(0.08, 0.10, 0.42);
-    vec3 wetPaper = vec3(0.82, 0.80, 0.74) * (0.92 + streak * 0.08);
+    vec3 wetPaper = vec3(0.86, 0.86, 0.84) * (0.92 + streak * 0.08);
     vec3 col = mix(sampledDiffuseColor.rgb, ink, band * 0.85);
     col = mix(col, wetPaper, washed);
     sampledDiffuseColor.rgb = col;
   }
+  if (uCaustic > 0.001) {
+    float ca = sin(rwUv.x * 130.0 + uTime * 1.8) * sin(rwUv.y * 150.0 - uTime * 1.4);
+    float cb = sin((rwUv.x + rwUv.y) * 95.0 + uTime * 2.3);
+    float caust = pow(max(ca * cb, 0.0), 2.0);
+    sampledDiffuseColor.rgb += vec3(0.30, 0.50, 0.72) * caust * uCaustic;
+  }
+  sampledDiffuseColor.rgb *= (1.0 - uWet * 0.16);
   diffuseColor *= sampledDiffuseColor;
 #endif
 `;
@@ -62,6 +75,8 @@ export class ResumeGround {
       uDissolve: { value: 0 },
       uTime: { value: 0 },
       uWarp: { value: 0 },
+      uCaustic: { value: 0 },
+      uWet: { value: 0 },
     };
 
     const texture = new THREE.CanvasTexture(this.paint());
@@ -70,14 +85,18 @@ export class ResumeGround {
 
     const material = new THREE.MeshStandardMaterial({
       map: texture,
-      roughness: 0.85,
+      roughness: 0.88,
       metalness: 0.0,
     });
     material.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, this.uniforms);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', '#include <common>\n' + NOISE_GLSL)
-        .replace('#include <map_fragment>', MAP_FRAGMENT);
+        .replace('#include <map_fragment>', MAP_FRAGMENT)
+        .replace(
+          '#include <roughnessmap_fragment>',
+          '#include <roughnessmap_fragment>\n  roughnessFactor = roughnessFactor * (1.0 - uWet * 0.6);'
+        );
     };
 
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(PAGE.width, PAGE.depth), material);
@@ -89,7 +108,7 @@ export class ResumeGround {
     // Paper thickness slab beneath the printed surface.
     const slab = new THREE.Mesh(
       new THREE.BoxGeometry(PAGE.width, 0.12, PAGE.depth),
-      new THREE.MeshStandardMaterial({ color: 0xe9e2d2, roughness: 0.92 })
+      new THREE.MeshStandardMaterial({ color: 0xf2f2ee, roughness: 0.92 })
     );
     slab.position.y = -0.062;
     slab.receiveShadow = true;
@@ -122,12 +141,12 @@ export class ResumeGround {
     const Z = (z) => ((z + PAGE.depth / 2) / PAGE.depth) * H;
     const S = (units) => (units / PAGE.width) * W; // size in px
 
-    // paper
-    ctx.fillStyle = '#f7f3ea';
+    // crisp white paper
+    ctx.fillStyle = '#fdfdfb';
     ctx.fillRect(0, 0, W, H);
-    // grain
-    for (let i = 0; i < 9000; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(120,110,90,0.025)' : 'rgba(255,255,255,0.05)';
+    // neutral grain (no warm tint)
+    for (let i = 0; i < 7000; i++) {
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(98,98,108,0.02)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(Math.random() * W, Math.random() * H, 2 + Math.random() * 3, 2 + Math.random() * 3);
     }
 
@@ -155,11 +174,10 @@ export class ResumeGround {
       ctx.fillText(str, L + S(indent), Z(zUnits));
     };
 
-    const heading = (label, zUnits) => {
-      ctx.font = `bold 54px ${serif}`;
+    // No heading text on the paper — the 3D blocks carry the glowing labels.
+    // Painting text here caused letters to leak out beyond the block edges.
+    const headingRule = (zUnits) => {
       ctx.fillStyle = INK;
-      ctx.textAlign = 'left';
-      ctx.fillText(label, L, Z(zUnits + 0.3));
       ctx.fillRect(L, Z(zUnits + 0.62), R - L, 4);
     };
 
@@ -170,8 +188,7 @@ export class ResumeGround {
       W / 2, -17.25, `36px ${serif}`, FAINT, 'center'
     );
 
-    // ----- headings (blocks sit on these rows) -----
-    for (const h of HEADINGS) heading(h.label, h.z);
+    for (const h of HEADINGS) headingRule(h.z);
 
     // ----- education -----
     row('Manipal University Jaipur', 'Jaipur, Rajasthan', -15.05, `bold 40px ${serif}`, `38px ${serif}`);
@@ -220,7 +237,7 @@ export class ResumeGround {
     row('Frameworks', 'React, Express.js, Node.js', 17.4, `bold 40px ${serif}`, `38px ${serif}`);
     row('Databases', 'MongoDB', 18.3, `bold 40px ${serif}`, `38px ${serif}`);
 
-    text('— an interactive résumé world · built with three.js —', W / 2, 20.2, `italic 30px ${serif}`, '#9a937f', 'center');
+    text('— an interactive résumé world · built with three.js —', W / 2, 20.2, `italic 30px ${serif}`, '#8e8e9c', 'center');
 
     return canvas;
   }

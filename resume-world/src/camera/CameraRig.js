@@ -1,48 +1,91 @@
 import * as THREE from 'three';
-import { clamp, damp } from '../utils.js';
+import { clamp, damp, dampAngle } from '../utils.js';
 
-// Blends continuously between a top-down "map view" and a third-person
-// cinematic view — the Apple Maps tilt gesture. T snaps between them,
-// pinch (ctrl+wheel) scrubs the blend, plain wheel pans across the page.
+// Orbit camera around the character:
+//   drag            — rotate (yaw + pitch) so you can see the character's face
+//   scroll / pinch  — zoom in and out
+//   T / button      — toggle between Top and Third-person presets
+// The camera always follows the character; presets just set pitch + distance,
+// after which you're free to orbit and zoom.
 
-const TOP_FOV = 55;
-const TP_FOV = 75;
+const PRESETS = {
+  top: { pitch: 1.28, dist: 24 },
+  third: { pitch: 0.3, dist: 7.5 },
+};
 
 export class CameraRig {
   constructor(camera, character, dom) {
     this.camera = camera;
     this.character = character;
 
-    this.blend = 0;          // 0 = top-down, 1 = third-person
-    this.blendTarget = 0;
-    this.introH = 0;         // extra height during the opening swoop
+    this.mode = 'top';
+    this.yaw = 0;                 // 0 = camera south of the page, text upright
+    this.pitch = PRESETS.top.pitch;
+    this.dist = 48;               // start far out; damps in for an opening swoop
+    this.yawT = 0;
+    this.pitchT = PRESETS.top.pitch;
+    this.distT = PRESETS.top.dist;
 
-    this.panOffset = new THREE.Vector3();
-    this.panVel = new THREE.Vector3();
+    this.focus = character.root.position.clone();
 
-    this.lookSmooth = character.root.position.clone();
-    this.posSmooth = new THREE.Vector3(0, 18, 6);
-
-    this._topPos = new THREE.Vector3();
-    this._tpPos = new THREE.Vector3();
-    this._desired = new THREE.Vector3();
-    this._lookTarget = new THREE.Vector3();
+    this._offset = new THREE.Vector3();
     this._fwd = new THREE.Vector3();
 
+    // ---------- pointer input: rotate + pinch zoom ----------
+    this.pointers = new Map();
+    this.pinchDist = 0;
+
+    dom.addEventListener('pointerdown', (e) => {
+      this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.pointers.size === 2) {
+        const [a, b] = [...this.pointers.values()];
+        this.pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+      }
+    });
+    dom.addEventListener('pointermove', (e) => {
+      const prev = this.pointers.get(e.pointerId);
+      if (!prev) return;
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      prev.x = e.clientX;
+      prev.y = e.clientY;
+
+      if (this.pointers.size === 2) {
+        // pinch zoom
+        const [a, b] = [...this.pointers.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (this.pinchDist > 0) {
+          this.distT = clamp(this.distT * (this.pinchDist / d), 4.5, 40);
+        }
+        this.pinchDist = d;
+      } else if (this.pointers.size === 1 && (e.pointerType !== 'mouse' || e.buttons & 1)) {
+        // one-finger / left-drag rotate
+        this.yawT -= dx * 0.0055;
+        this.pitchT = clamp(this.pitchT + dy * 0.0042, 0.14, 1.5);
+      }
+    });
+    const release = (e) => {
+      this.pointers.delete(e.pointerId);
+      this.pinchDist = 0;
+    };
+    dom.addEventListener('pointerup', release);
+    dom.addEventListener('pointercancel', release);
+    dom.addEventListener('pointerleave', release);
+
+    // wheel & trackpad pinch (ctrl+wheel) both zoom
     window.addEventListener('wheel', (e) => {
       e.preventDefault();
-      if (e.ctrlKey) {
-        this.blendTarget = clamp(this.blendTarget + e.deltaY * 0.0035, 0, 1);
-      } else {
-        this.panVel.x += e.deltaX * 0.012;
-        this.panVel.z += e.deltaY * 0.012;
-      }
+      const factor = e.ctrlKey ? 0.006 : 0.0014;
+      this.distT = clamp(this.distT * Math.exp(e.deltaY * factor), 4.5, 40);
     }, { passive: false });
   }
 
   toggle() {
-    this.blendTarget = this.blendTarget < 0.5 ? 1 : 0;
-    return this.blendTarget;
+    this.mode = this.mode === 'top' ? 'third' : 'top';
+    const preset = PRESETS[this.mode];
+    this.pitchT = preset.pitch;
+    this.distT = preset.dist;
+    return this.mode;
   }
 
   getForward(target = this._fwd) {
@@ -53,53 +96,28 @@ export class CameraRig {
   }
 
   update(dt) {
+    this.yaw = dampAngle(this.yaw, this.yawT, 10, dt);
+    this.pitch = damp(this.pitch, this.pitchT, 8, dt);
+    this.dist = damp(this.dist, this.distT, 5, dt);
+
     const charPos = this.character.root.position;
+    this.focus.x = damp(this.focus.x, charPos.x, 6, dt);
+    this.focus.y = damp(this.focus.y, charPos.y + 1.1, 6, dt);
+    this.focus.z = damp(this.focus.z, charPos.z, 6, dt);
 
-    // pan momentum + friction; recenter while the character moves
-    this.panVel.multiplyScalar(Math.pow(0.92, dt * 60));
-    this.panOffset.addScaledVector(this.panVel, dt * 60);
-    this.panOffset.x = clamp(this.panOffset.x, -18, 18);
-    this.panOffset.z = clamp(this.panOffset.z, -24, 24);
-    if (this.character.moveSpeed > 0.5) {
-      this.panOffset.multiplyScalar(Math.pow(0.05, dt));
-    }
+    const cp = Math.cos(this.pitch);
+    this._offset.set(
+      Math.sin(this.yaw) * cp,
+      Math.sin(this.pitch),
+      Math.cos(this.yaw) * cp
+    ).multiplyScalar(this.dist);
 
-    this.blend = damp(this.blend, this.blendTarget, 6, dt);
-    const b = this.blend;
+    this.camera.position.copy(this.focus).add(this._offset);
+    if (this.camera.position.y < 0.6) this.camera.position.y = 0.6;
+    this.camera.lookAt(this.focus);
 
-    const focus = this._lookTarget.set(
-      charPos.x + this.panOffset.x,
-      charPos.y,
-      charPos.z + this.panOffset.z
-    );
-
-    // top-down candidate
-    this._topPos.set(focus.x, 18, focus.z + 6);
-
-    // third-person candidate — behind the character's shoulder
-    const yaw = this.character.yaw;
-    const back = 6;
-    this._tpPos.set(
-      focus.x - Math.sin(yaw) * back,
-      focus.y + 3.5,
-      focus.z - Math.cos(yaw) * back
-    );
-
-    this._desired.lerpVectors(this._topPos, this._tpPos, b);
-    this._desired.y += this.introH;
-
-    this.posSmooth.x = damp(this.posSmooth.x, this._desired.x, 5, dt);
-    this.posSmooth.y = damp(this.posSmooth.y, this._desired.y, 5, dt);
-    this.posSmooth.z = damp(this.posSmooth.z, this._desired.z, 5, dt);
-    this.camera.position.copy(this.posSmooth);
-
-    const lookY = focus.y + 1.5 * b;
-    this.lookSmooth.x = damp(this.lookSmooth.x, focus.x, 6, dt);
-    this.lookSmooth.y = damp(this.lookSmooth.y, lookY, 6, dt);
-    this.lookSmooth.z = damp(this.lookSmooth.z, focus.z, 6, dt);
-    this.camera.lookAt(this.lookSmooth);
-
-    const fov = TOP_FOV + (TP_FOV - TOP_FOV) * b;
+    // tighter FOV when looking straight down (map feel), wider up close
+    const fov = 46 + (1.5 - this.pitch) * 15;
     if (Math.abs(this.camera.fov - fov) > 0.05) {
       this.camera.fov = fov;
       this.camera.updateProjectionMatrix();

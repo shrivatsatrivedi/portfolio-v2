@@ -40,7 +40,7 @@ export class HeadingObstacles {
     });
 
     for (const h of HEADINGS) {
-      const width = h.label.length * 0.42 + 1.2;
+      const width = h.label.length * 0.45 + 1.4;
       const tex = labelTexture(h.label);
       const labelMat = new THREE.MeshStandardMaterial({
         map: tex,
