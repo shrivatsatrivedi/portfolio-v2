@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 import CustomCursor from "@/components/CustomCursor";
+import CommandPalette from "@/components/CommandPalette";
+import EffectsLayer from "@/components/EffectsLayer";
+import GameModal from "@/components/GameModal";
+import Toaster from "@/components/Toaster";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -44,7 +48,11 @@ export default function RootLayout({
     >
       <body className="noise min-h-full flex flex-col">
         <CustomCursor />
+        <EffectsLayer />
         {children}
+        <CommandPalette />
+        <GameModal />
+        <Toaster />
       </body>
     </html>
   );

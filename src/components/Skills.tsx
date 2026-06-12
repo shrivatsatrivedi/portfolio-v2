@@ -193,7 +193,7 @@ export default function Skills() {
           className="pointer-events-none absolute left-1/2 top-1/2 h-[70%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
             background:
-              "radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 65%)",
+              "radial-gradient(circle, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 65%)",
           }}
           aria-hidden
         />
@@ -234,7 +234,7 @@ export default function Skills() {
                 <div
                   data-cursor
                   onClick={onChipClick}
-                  className={`skill-chip-inner glass cursor-pointer whitespace-nowrap rounded-full opacity-0 transition-shadow duration-300 hover:shadow-[0_0_24px_rgba(99,102,241,0.45)] ${ring.chipClass}`}
+                  className={`skill-chip-inner glass cursor-pointer whitespace-nowrap rounded-full opacity-0 transition-shadow duration-300 hover:shadow-[0_0_24px_var(--glow-mid)] ${ring.chipClass}`}
                 >
                   {skill}
                 </div>

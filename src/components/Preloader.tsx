@@ -149,7 +149,7 @@ export default function Preloader() {
       <div className="absolute bottom-0 left-0 h-px w-full bg-white/5">
         <div
           ref={barRef}
-          className="h-full w-full origin-left bg-accent shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+          className="h-full w-full origin-left bg-accent shadow-[0_0_12px_var(--glow-strong)]"
           style={{ transform: "scaleX(0)" }}
         />
       </div>

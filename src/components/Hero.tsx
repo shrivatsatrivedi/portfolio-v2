@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { animate, stagger, createTimer, createAnimatable } from "animejs";
 import { rand } from "@/lib/animations";
 import { onPreloaderDone } from "@/lib/preloader";
+import { on } from "@/lib/bus";
 
 const NAME = "SHRIVATSA TRIVEDI";
 const ROLES = [
@@ -15,7 +16,7 @@ const ROLES = [
 const PARTICLE_COUNT = 80;
 const REPEL_RADIUS = 120;
 const LINK_DIST = 110;
-const COLORS = ["#6366f1", "#818cf8", "#a5b4fc"];
+const GLYPHS = "!<>-_\\/[]{}—=+*^?#01";
 
 type Particle = {
   x: number;
@@ -24,7 +25,7 @@ type Particle = {
   vy: number;
   r: number;
   o: number;
-  c: string;
+  slot: number; // index into the live accent palette
 };
 
 export default function Hero() {
@@ -45,6 +46,22 @@ export default function Hero() {
     let h = (canvas.height = section.clientHeight);
     const mouse = { x: -9999, y: -9999 };
 
+    // palette follows the live accent theme; warp (Konami / ⌘K) boosts speed
+    let colors = ["#6366f1", "#818cf8", "#a5b4fc"];
+    const readAccent = () => {
+      const cs = getComputedStyle(document.documentElement);
+      const a = cs.getPropertyValue("--accent").trim() || "#6366f1";
+      const l = cs.getPropertyValue("--accent-light").trim() || "#818cf8";
+      colors = [a, l, l];
+    };
+    readAccent();
+    const offAccent = on("accent:changed", readAccent);
+
+    let boostUntil = 0;
+    const offWarp = on("warp", () => {
+      boostUntil = performance.now() + 2300;
+    });
+
     const particles: Particle[] = Array.from({ length: PARTICLE_COUNT }, () => ({
       x: rand(0, w),
       y: rand(0, h),
@@ -52,7 +69,7 @@ export default function Hero() {
       vy: rand(-0.25, 0.25),
       r: rand(1, 1.6),
       o: rand(0.25, 0.85),
-      c: COLORS[Math.floor(rand(0, COLORS.length))],
+      slot: Math.floor(rand(0, 3)),
     }));
 
     const onResize = () => {
@@ -77,9 +94,11 @@ export default function Hero() {
       onUpdate: () => {
         ctx.clearRect(0, 0, w, h);
 
+        const boost = performance.now() < boostUntil ? 7 : 1;
+
         for (const p of particles) {
-          p.x += p.vx;
-          p.y += p.vy;
+          p.x += p.vx * boost;
+          p.y += p.vy * boost;
 
           // gentle repulsion from cursor
           const dx = p.x - mouse.x;
@@ -109,7 +128,7 @@ export default function Hero() {
             const d = Math.hypot(dx, dy);
             if (d < LINK_DIST) {
               ctx.globalAlpha = (1 - d / LINK_DIST) * 0.16;
-              ctx.strokeStyle = "#818cf8";
+              ctx.strokeStyle = colors[1];
               ctx.beginPath();
               ctx.moveTo(a.x, a.y);
               ctx.lineTo(b.x, b.y);
@@ -120,7 +139,7 @@ export default function Hero() {
 
         for (const p of particles) {
           ctx.globalAlpha = p.o;
-          ctx.fillStyle = p.c;
+          ctx.fillStyle = colors[p.slot];
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
           ctx.fill();
@@ -131,6 +150,8 @@ export default function Hero() {
 
     return () => {
       timer.cancel();
+      offAccent();
+      offWarp();
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMove);
       section.removeEventListener("mouseleave", onLeave);
@@ -274,6 +295,31 @@ export default function Hero() {
     return () => cleanups.forEach((fn) => fn());
   }, []);
 
+  // Click the name → glyph-scramble decode effect
+  const decodeName = () => {
+    const letters = document.querySelectorAll<HTMLElement>(".hero-letter");
+    letters.forEach((el, i) => {
+      if (el.dataset.decoding) return;
+      el.dataset.decoding = "1";
+      const original = el.dataset.char ?? el.textContent ?? "";
+      let frame = 0;
+      const total = 12 + i * 2;
+      const tick = () => {
+        frame++;
+        if (frame >= total) {
+          el.textContent = original;
+          delete el.dataset.decoding;
+          return;
+        }
+        if (frame % 2 === 0) {
+          el.textContent = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+        }
+        requestAnimationFrame(tick);
+      };
+      tick();
+    });
+  };
+
   // Letters bounce when you sweep over them
   const onLetterEnter = (e: React.MouseEvent<HTMLSpanElement>) => {
     const el = e.currentTarget;
@@ -307,12 +353,12 @@ export default function Hero() {
         aria-hidden
       />
 
-      {/* breathing indigo glow behind the name */}
+      {/* breathing accent glow behind the name */}
       <div
         className="hero-orb orb-breathe pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
         style={{
           background:
-            "radial-gradient(circle, rgba(99,102,241,0.16) 0%, rgba(99,102,241,0.05) 45%, transparent 70%)",
+            "radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent) 0%, color-mix(in srgb, var(--accent) 5%, transparent) 45%, transparent 70%)",
         }}
         aria-hidden
       />
@@ -322,12 +368,15 @@ export default function Hero() {
           className="font-heading flex flex-wrap justify-center gap-x-5 text-5xl font-bold tracking-[-0.02em] sm:text-6xl md:text-7xl lg:text-8xl"
           style={{ perspective: "600px" }}
           aria-label={NAME}
+          onClick={decodeName}
+          title="Click me"
         >
           {NAME.split(" ").map((word, wi) => (
             <span key={wi} className="whitespace-nowrap" aria-hidden>
               {word.split("").map((ch, i) => (
                 <span
                   key={i}
+                  data-char={ch}
                   className="hero-letter inline-block opacity-0"
                   onMouseEnter={onLetterEnter}
                 >

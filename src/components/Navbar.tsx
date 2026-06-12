@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { animate, stagger } from "animejs";
+import { emit } from "@/lib/bus";
 
 const LINKS = [
   { label: "About", id: "about" },
@@ -96,9 +97,28 @@ export default function Navbar() {
               </a>
             </li>
           ))}
+          <li>
+            <button
+              onClick={() => emit("palette:toggle")}
+              className="glass flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-muted transition-colors hover:text-foreground"
+              aria-label="Open command deck"
+            >
+              <span className="text-accent-light" aria-hidden>
+                ✦
+              </span>
+              ⌘K
+            </button>
+          </li>
         </ul>
 
-        {/* Hamburger */}
+        {/* Mobile: command deck + hamburger */}
+        <button
+          onClick={() => emit("palette:toggle")}
+          className="ml-auto mr-2 flex h-10 w-10 items-center justify-center text-lg text-accent-light md:hidden"
+          aria-label="Open command deck"
+        >
+          ✦
+        </button>
         <button
           className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 md:hidden"
           onClick={() => setOpen((v) => !v)}

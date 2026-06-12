@@ -81,14 +81,14 @@ export default function Experience() {
           className="absolute left-0 top-0 h-full w-px origin-top bg-accent"
           style={{
             transform: "scaleY(0)",
-            boxShadow: "0 0 12px rgba(99, 102, 241, 0.7)",
+            boxShadow: "0 0 12px var(--glow-mid)",
           }}
         />
 
         <div className="flex flex-col gap-12">
           {JOBS.map((job) => (
             <div key={job.company} className="relative">
-              <div className="absolute -left-[37px] top-2 h-[11px] w-[11px] rounded-full bg-accent shadow-[0_0_12px_rgba(99,102,241,0.9)] md:-left-[53px]" />
+              <div className="absolute -left-[37px] top-2 h-[11px] w-[11px] rounded-full bg-accent shadow-[0_0_12px_var(--glow-strong)] md:-left-[53px]" />
 
               <div className="exp-card glass glow-hover rounded-2xl p-8 opacity-0">
                 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">

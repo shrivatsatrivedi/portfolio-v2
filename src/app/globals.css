@@ -7,6 +7,10 @@
   --text: #e2e8f0;
   --text-muted: #64748b;
   --card-bg: rgba(255, 255, 255, 0.04);
+  /* glow tints derive from the accent so theme shifts recolor everything */
+  --glow-soft: color-mix(in srgb, var(--accent) 30%, transparent);
+  --glow-mid: color-mix(in srgb, var(--accent) 55%, transparent);
+  --glow-strong: color-mix(in srgb, var(--accent) 85%, transparent);
 }
 
 @theme inline {
@@ -90,8 +94,8 @@ h4 {
 }
 
 .glow-hover:hover {
-  box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
-  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 30px var(--glow-soft);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 /* Noise texture overlay */
@@ -115,10 +119,10 @@ h4 {
 @keyframes pulse-glow {
   0%,
   100% {
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 25%, transparent);
   }
   50% {
-    box-shadow: 0 0 28px rgba(99, 102, 241, 0.55);
+    box-shadow: 0 0 28px var(--glow-mid);
   }
 }
 
@@ -243,4 +247,35 @@ h4 {
 .link-underline:hover::after {
   transform: scaleX(1);
   transform-origin: left;
+}
+
+/* Toast entrance */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toast-in {
+  animation: toast-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Drifting astronaut on the 404 page */
+@keyframes float-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-8deg);
+  }
+  50% {
+    transform: translateY(-22px) rotate(8deg);
+  }
+}
+
+.float-drift {
+  animation: float-drift 5.5s ease-in-out infinite;
 }
