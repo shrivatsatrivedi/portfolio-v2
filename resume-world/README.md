@@ -13,6 +13,12 @@ npm run dev      # http://localhost:5173
 npm run build    # production build in dist/
 ```
 
+## Deploy
+
+Auto-deploys to [resume-world.vercel.app](https://resume-world.vercel.app) on
+every push to `main` of the `portfolio-v2` repo (Vercel Git integration; root
+directory `resume-world`).
+
 ## Controls
 
 | Input | Action |
