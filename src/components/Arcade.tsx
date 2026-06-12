@@ -197,11 +197,6 @@ export default function Arcade() {
       );
     };
     const onMouse = (e: MouseEvent) => movePaddle(e.clientX);
-    const onTouch = (e: TouchEvent) => {
-      e.preventDefault();
-      const t = e.touches[0];
-      if (t) movePaddle(t.clientX);
-    };
     const launch = () => {
       if (!ball.stuck) return;
       ball.stuck = false;
@@ -210,7 +205,7 @@ export default function Arcade() {
       ball.vy = -Math.cos(a) * ball.speed;
       sfx.launch();
     };
-    const onClick = () => {
+    const tryLaunch = () => {
       if (phaseRef.current === "ready") {
         setPhaseSync("playing");
         launch();
@@ -218,10 +213,42 @@ export default function Arcade() {
         launch();
       }
     };
+
+    // preventDefault on touch events (needed to stop page scroll) also
+    // suppresses the browser's synthetic click — so taps must launch via
+    // the touch events themselves. A "tap" = touchend without much movement.
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchMoved = false;
+    const onTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (t) {
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchMoved = false;
+        movePaddle(t.clientX);
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (t) {
+        if (Math.hypot(t.clientX - touchStartX, t.clientY - touchStartY) > 12) {
+          touchMoved = true;
+        }
+        movePaddle(t.clientX);
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!touchMoved) tryLaunch();
+    };
     canvas.addEventListener("mousemove", onMouse);
-    canvas.addEventListener("touchmove", onTouch, { passive: false });
-    canvas.addEventListener("touchstart", onTouch, { passive: false });
-    canvas.addEventListener("click", onClick);
+    canvas.addEventListener("touchstart", onTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    canvas.addEventListener("touchend", onTouchEnd, { passive: false });
+    canvas.addEventListener("click", tryLaunch);
 
     // only burn CPU while the arcade is on screen
     let visible = false;
@@ -469,9 +496,10 @@ export default function Arcade() {
       offAccent();
       window.removeEventListener("resize", measure);
       canvas.removeEventListener("mousemove", onMouse);
-      canvas.removeEventListener("touchmove", onTouch);
-      canvas.removeEventListener("touchstart", onTouch);
-      canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("touchend", onTouchEnd);
+      canvas.removeEventListener("click", tryLaunch);
     };
   }, []);
 
