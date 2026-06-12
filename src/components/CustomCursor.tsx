@@ -64,13 +64,13 @@ export default function CustomCursor() {
     <>
       <div
         ref={dotRef}
-        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[10001] h-[10px] w-[10px] rounded-full bg-accent will-change-transform"
+        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[10041] h-[10px] w-[10px] rounded-full bg-accent will-change-transform"
         style={{ transform: "translate3d(-100px, -100px, 0)" }}
         aria-hidden
       />
       <div
         ref={ringRef}
-        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[10000] h-9 w-9 rounded-full border transition-colors duration-200 will-change-transform"
+        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[10040] h-9 w-9 rounded-full border transition-colors duration-200 will-change-transform"
         style={{
           transform: "translate3d(-100px, -100px, 0)",
           borderColor: "rgba(99, 102, 241, 0.7)",

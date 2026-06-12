@@ -92,12 +92,12 @@ export default function CommandPalette() {
       // Fun
       {
         id: "game",
-        label: "Play: Orbit Dodger",
-        hint: "hidden arcade",
+        label: "Play: Stack Breaker",
+        hint: "built into the page",
         emoji: "🕹️",
         group: "Fun",
-        keywords: "game play arcade",
-        action: () => emit("game:open"),
+        keywords: "game play arcade breakout",
+        action: () => scrollTo("arcade"),
       },
       {
         id: "warp",

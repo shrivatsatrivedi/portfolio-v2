@@ -4,7 +4,6 @@ import "./globals.css";
 import CustomCursor from "@/components/CustomCursor";
 import CommandPalette from "@/components/CommandPalette";
 import EffectsLayer from "@/components/EffectsLayer";
-import GameModal from "@/components/GameModal";
 import Toaster from "@/components/Toaster";
 
 const spaceGrotesk = Space_Grotesk({
@@ -51,7 +50,6 @@ export default function RootLayout({
         <EffectsLayer />
         {children}
         <CommandPalette />
-        <GameModal />
         <Toaster />
       </body>
     </html>
